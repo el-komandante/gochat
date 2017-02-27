@@ -1,0 +1,19 @@
+version: '2'
+services:
+  postgres:
+    image: "gochat-postgres"
+    ports:
+    - "5432"
+    environment:
+    - POSTGRES_PASSWORD=postgres
+    volumes:
+    - data:/var/lib/postgres
+  gochat-api:
+    image: "gochat"
+    ports:
+    - "8000:8000"
+volumes:
+  data:
+    driver: "local"
+  build:
+    driver: "local"
