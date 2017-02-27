@@ -6,11 +6,11 @@ import (
   _ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-var db *gorm.DB
+var DB *gorm.DB
 
 func init() {
   time.Sleep(time.Duration(20) * time.Second)
-  db, err := gorm.Open("postgres", "postgres://postgres:postgres@postgres/postgres?sslmode=disable")
+  DB, err := gorm.Open("postgres", "postgres://postgres:postgres@postgres/postgres?sslmode=disable")
   if err != nil {
     panic(err)
   }

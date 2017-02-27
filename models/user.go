@@ -12,13 +12,13 @@ type User struct {
 }
 
 func CreateUser(user User) {
-  db, err := gorm.Open("postgres", "host=localhost user=postgres dbname=gochat sslmode=disable password=postgres")
-  if err != nil {
-    panic(err)
-  }
+  // db, err := gorm.Open("postgres", "host=localhost user=postgres dbname=gochat sslmode=disable password=postgres")
+  // if err != nil {
+  //   panic(err)
+  // }
   user.Password = string(CreatePassword(user.Password))
 
-  db.NewRecord(user)
+  DB.NewRecord(user)
 }
 
 func CreatePassword(pw string) []byte {
