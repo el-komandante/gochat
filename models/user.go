@@ -21,7 +21,7 @@ func CreateUser(user User) {
   DB.NewRecord(user)
 }
 
-func CreatePassword(pw string) []byte {
+func CreatePassword(pw string) string {
   password := []byte(pw)
   hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
   if err != nil {
