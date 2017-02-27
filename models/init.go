@@ -10,6 +10,7 @@ var DB *gorm.DB
 
 func init() {
   time.Sleep(time.Duration(20) * time.Second)
+  var err error
   DB, err := gorm.Open("postgres", "postgres://postgres:postgres@postgres/postgres?sslmode=disable")
   if err != nil {
     panic(err)
