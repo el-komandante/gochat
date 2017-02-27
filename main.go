@@ -2,12 +2,13 @@ package main
 import (
   "log"
   "net/http"
+  "encoding/json"
+  "golang.org/x/crypto/bcrypt"
 
-  "github.com/gorilla/websocket"
   "github.com/gorilla/mux"
-  "github.com/el-komandate/gochat/models"
+  "github.com/el-komandante/gochat/models"
 )
-
+// "github.com/gorilla/websocket"
 // var clients = make(map[*websocket.Conn]bool)
 // var broadcast = make(chan Message)
 // var upgrader = websocket.Upgrader{
@@ -59,16 +60,17 @@ import (
 //   }
 // }
 
-func createUserHandler(w http.ResponseWriter, r *http.Request) {
-  decoder := json.NewDecoder(r.body)
-  var user models.user
+func createUserHandler(w http.ResponseWriter, req *http.Request) {
+  decoder := json.NewDecoder(req.Body)
+  var user models.User
   err := decoder.Decode(&user)
   if err != nil {
     panic(err)
   }
-  user.Password = createPassword(user.Password)
+  user.Password = string(models.CreatePassword(user.Password))
+  models.CreateUser(user)
   log.Println(user)
-  defer r.body.Close()
+  defer req.Body.Close()
 }
 
 func main() {
@@ -81,8 +83,6 @@ func main() {
   // go handleMessages()
 
   log.Println("http server started on :8000")
-  err := http.ListenAndServe(":8000", nil)
-  if err != nil {
-    log.Fatal("ListenAndServe: ", err)
-  }
+  // err := http.ListenAndServe(":8000", nil)
+  log.Fatal(http.ListenAndServe(":8000", r))
 }
