@@ -27,5 +27,5 @@ func CreatePassword(pw string) []byte {
   if err != nil {
     panic(err)
   }
-  return hash
+  return string(hash)
 }
