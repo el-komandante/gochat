@@ -66,7 +66,8 @@ func createUserHandler(w http.ResponseWriter, req *http.Request) {
   if err != nil {
     panic(err)
   }
-  models.CreateUser(user)
+  user.Password = models.CreatePassword(user.Password)
+  models.DB.create(&user)
   log.Println(user)
   defer req.Body.Close()
 }
