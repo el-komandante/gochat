@@ -3,7 +3,6 @@ import (
   "log"
   "net/http"
   "encoding/json"
-  "golang.org/x/crypto/bcrypt"
 
   "github.com/gorilla/mux"
   "github.com/el-komandante/gochat/models"
@@ -67,7 +66,6 @@ func createUserHandler(w http.ResponseWriter, req *http.Request) {
   if err != nil {
     panic(err)
   }
-  user.Password = string(models.CreatePassword(user.Password))
   models.CreateUser(user)
   log.Println(user)
   defer req.Body.Close()
