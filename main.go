@@ -80,8 +80,8 @@ func main() {
   r.HandleFunc("/users", createUserHandler)
   // r.HandleFunc("/login", loginHandler)
   r.HandleFunc("/ws", connectionHandler)
-  r.Handle("/", http.FileServer(http.Dir("../public")))
-
+  r.PathPrefix("/").Handler(http.FileServer(http.Dir("../public")))
+  http.Handle("/", r)
   // go handleMessages()
 
   log.Println("http server started on :8000")
