@@ -24,25 +24,25 @@ import (
 //   Message string  `json:message`
 // }
 //
-// func connectionHandler(w http.ResponseWriter, r *http.Request) {
-//   ws, err := upgrader.Upgrade(w, r, nil)
-//   if err != nil {
-//     log.Fatal(err)
-//   }
-//   defer ws.Close()
-//   clients[ws] = true
-//
-//   for {
-//     var msg Message
-//     err := ws.ReadJSON(&msg)
-//     if err != nil {
-//       log.Printf("error: %v", err)
-//       delete(clients, ws)
-//       break
-//     }
-//     broadcast <- msg
-//   }
-// }
+func connectionHandler(w http.ResponseWriter, r *http.Request) {
+  ws, err := upgrader.Upgrade(w, r, nil)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer ws.Close()
+  clients[ws] = true
+
+  for {
+    var msg Message
+    err := ws.ReadJSON(&msg)
+    if err != nil {
+      log.Printf("error: %v", err)
+      delete(clients, ws)
+      break
+    }
+    broadcast <- msg
+  }
+}
 //
 // func handleMessages() {
 //   for {
