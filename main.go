@@ -6,24 +6,24 @@ import (
 
   "github.com/gorilla/mux"
   "github.com/el-komandante/gochat/models"
+  "github.com/gorilla/websocket"
 )
-// "github.com/gorilla/websocket"
-// var clients = make(map[*websocket.Conn]bool)
-// var broadcast = make(chan Message)
-// var upgrader = websocket.Upgrader{
-//   ReadBufferSize:  1024,
-//   WriteBufferSize: 1024,
-//   CheckOrigin: func(r *http.Request) bool {
-//         return true
-//       },
-// }
-//
-// type Message struct {
-//   Email string    `json:email`
-//   Username string `json:username`
-//   Message string  `json:message`
-// }
-//
+var clients = make(map[*websocket.Conn]bool)
+var broadcast = make(chan Message)
+var upgrader = websocket.Upgrader{
+  ReadBufferSize:  1024,
+  WriteBufferSize: 1024,
+  CheckOrigin: func(r *http.Request) bool {
+        return true
+      },
+}
+
+type Message struct {
+  Email string    `json:email`
+  Username string `json:username`
+  Message string  `json:message`
+}
+
 func connectionHandler(w http.ResponseWriter, r *http.Request) {
   ws, err := upgrader.Upgrade(w, r, nil)
   if err != nil {
