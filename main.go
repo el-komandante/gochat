@@ -80,7 +80,7 @@ func main() {
   r.HandleFunc("/users", createUserHandler)
   // r.HandleFunc("/login", loginHandler)
   r.HandleFunc("/ws", connectionHandler)
-  r.Handle("/", http.FileServer(http.Dir("/public")))
+  r.Handle("/", http.FileServer(http.Dir("../public")))
 
   // go handleMessages()
 
