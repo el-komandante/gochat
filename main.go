@@ -60,23 +60,26 @@ import (
 // }
 
 func createUserHandler(w http.ResponseWriter, req *http.Request) {
-  decoder := json.NewDecoder(req.Body)
   var user models.User
+
+  decoder := json.NewDecoder(req.Body)
+  defer req.Body.Close()
+
   err := decoder.Decode(&user)
   if err != nil {
     panic(err)
   }
+
   user.Password = models.CreatePassword(user.Password)
   models.DB.Create(&user)
   log.Println(user)
-  defer req.Body.Close()
 }
 
 func main() {
   r := mux.NewRouter()
   r.HandleFunc("/users", createUserHandler)
   // r.HandleFunc("/login", loginHandler)
-  // r.HandleFunc("/ws", connectionHandler)
+  r.HandleFunc("/ws", connectionHandler)
   r.Handle("/", http.FileServer(http.Dir("/public")))
 
   // go handleMessages()
