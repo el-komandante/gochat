@@ -9,7 +9,7 @@ import (
 var DB *gorm.DB
 
 func init() {
-  time.Sleep(time.Duration(10) * time.Second)
+  time.Sleep(time.Duration(15) * time.Second)
   var err error
   DB, err = gorm.Open("postgres", "postgres://postgres:postgres@localhost:5432/gochat?sslmode=disable")
   if err != nil {
