@@ -5,6 +5,7 @@ import (
     "crypto/rand"
     "encoding/base64"
     "time"
+    "errors"
 
     "github.com/jinzhu/gorm"
 )
@@ -28,9 +29,18 @@ func CreateSession(userID uint) Session {
     sess.UserID = userID
     sess.Expires = int(time.Now().Add(time.Duration(240) * time.Hour).Unix())
 
-    DB.NewRecord(sess)
+    DB.Create(&sess)
+    log.Printf("session created")
 
     return sess
+}
+
+func (s Session) GetUser() (User, error) {
+    var u User
+    if DB.Where("ID = ?", s.UserID).First(&u).RecordNotFound() {
+        return u, errors.New("No user found with matching SessionID.")
+    }
+    return u, nil
 }
 
 func GenerateRandomBytes(n int) ([]byte, error) {

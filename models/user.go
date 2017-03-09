@@ -43,7 +43,7 @@ func (u *User) GetSession() (Session, error) {
     return sess, nil
 }
 
-func (u *User) NewSession() (Session, error) {
+func (u User) NewSession() (Session, error) {
     var sess Session
 
     if u.ID == 0 {

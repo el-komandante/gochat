@@ -3,17 +3,13 @@ package routes
 import (
     "net/http"
     "encoding/json"
+    "log"
+    "time"
+
     "golang.org/x/crypto/bcrypt"
     "github.com/el-komandante/gochat/models"
     "github.com/gorilla/mux"
-    "log"
-    "time"
 )
-
-// type Credentials struct{
-//   Username string `json:username`
-//   Password string `json:password`
-// }
 
 func addLoginRoutes(r *mux.Router) *mux.Router {
     r.HandleFunc("/login", loginHandler)/*.Methods("OPTIONS, POST")*/
@@ -23,12 +19,19 @@ func addLoginRoutes(r *mux.Router) *mux.Router {
 func loginHandler(w http.ResponseWriter, req *http.Request) {
     var (
         user models.User
-        // storedUser models.User
         sess models.Session
         err error
     )
 
+    w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Headers",
+      "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
+    if req.Method == "OPTIONS" {
+        return
+    }
 
     decoder := json.NewDecoder(req.Body)
     defer req.Body.Close()
@@ -68,28 +71,23 @@ func loginHandler(w http.ResponseWriter, req *http.Request) {
         }
     }
 
-    if models.DB.Where("UserID = ?", user.ID).First(&sess).RecordNotFound() {
-      sess = models.CreateSession(user.ID)
-    }
-    sess = models.CreateSession(user.ID)
+    // if models.DB.Where("user_id = ?", user.ID).First(&sess).RecordNotFound() {
+    //   sess = models.CreateSession(user.ID)
+    // }
 
-    maxAge := int(time.Now().Add(time.Duration(240) * time.Hour).Unix())
-
+    expires := time.Now().Add(time.Duration(24) * time.Hour)
+    log.Printf("%v", expires)
     cookie := http.Cookie{
-      Name: "sessionid",
+      Name: "session",
       Value: sess.SessionID,
       Path: "/",
-      MaxAge: maxAge,
-      Secure: true,
+      Expires: expires,
+      Secure: false,
       HttpOnly: true,
     }
     log.Printf("%v", cookie.String())
-    w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.Header().Set("Access-Control-Allow-Headers",
-      "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
     http.SetCookie(w, &cookie)
-
   }
 
 
