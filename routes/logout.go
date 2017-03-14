@@ -16,11 +16,11 @@ func addLogoutRoutes(r *mux.Router) *mux.Router {
 func logoutHandler(w http.ResponseWriter, req *http.Request) {
     log.Printf("req: %v", req)
     cookie, err := req.Cookie("session")
-    sess := models.Session{SessionID: cookie.Value}
     if err != nil {
-        log.Printf("%v", err)
+        http.Error(w, "You are not logged in.", http.StatusInternalServerError)
         return
     }
+    sess := models.Session{SessionID: cookie.Value}
     if models.DB.Where("session_id = ?", sess.SessionID).First(&sess).RecordNotFound() {
         return
     }
