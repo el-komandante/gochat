@@ -16,6 +16,12 @@ var upgrader = websocket.Upgrader{
       },
 }
 
+type Client struct {
+    ws *websocket.Conn
+    // Hub passes broadcast messages to this channel
+    send chan []byte
+}
+
 type Hub struct {
   clients       map[*Client]bool
   broadcast     chan []byte
@@ -38,7 +44,6 @@ func (h *Hub) start() {
         case conn := <-hub.addClient:
             // add a new client
             hub.clients[conn] = true
-            log.Printf("client added")
         case conn := <-hub.removeClient:
             // remove a client
             if _, ok := hub.clients[conn]; ok {
@@ -61,11 +66,6 @@ func (h *Hub) start() {
     }
 }
 
-type Client struct {
-    ws *websocket.Conn
-    // Hub passes broadcast messages to this channel
-    send chan []byte
-}
 
 // Hub broadcasts a new message and this fires
 func (c *Client) write() {
@@ -110,6 +110,13 @@ func (c *Client) read() {
 }
 
 func connectionHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Origin", "localhost")
+    w.Header().Set("Access-Control-Allow-Credentials", "true")
+    w.Header().Set("Access-Control-Allow-Headers",
+      "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+
     ws, err := upgrader.Upgrade(w, r, nil)
     if err != nil {
         log.Println("err at 117")
@@ -129,7 +136,7 @@ func connectionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addWsRoutes(r *mux.Router) *mux.Router {
-  r.Handle("/ws", use(http.HandlerFunc(connectionHandler), authenticate))
+  r.Handle("/ws", /*use(*/http.HandlerFunc(connectionHandler)/*, authenticate)*/)
   go hub.start()
   return r
 }

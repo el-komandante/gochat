@@ -30,8 +30,6 @@ func CreateSession(userID uint) Session {
     sess.Expires = int(time.Now().Add(time.Duration(240) * time.Hour).Unix())
 
     DB.Create(&sess)
-    log.Printf("session created")
-
     return sess
 }
 

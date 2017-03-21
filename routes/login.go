@@ -1,3 +1,4 @@
+
 package routes
 
 import (
@@ -25,7 +26,7 @@ func loginHandler(w http.ResponseWriter, req *http.Request) {
 
     w.Header().Set("Content-Type", "application/json")
     w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
     w.Header().Set("Access-Control-Allow-Credentials", "true")
     w.Header().Set("Access-Control-Allow-Headers",
       "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
@@ -77,17 +78,18 @@ func loginHandler(w http.ResponseWriter, req *http.Request) {
     // }
 
     expires := time.Now().Add(time.Duration(24) * time.Hour)
-    log.Printf("%v", expires)
     cookie := http.Cookie{
       Name: "session",
       Value: sess.SessionID,
       Path: "/",
       Expires: expires,
-      Secure: false,
-      HttpOnly: true,
+      // Secure: false,
+      // HttpOnly: true,
       Domain: "localhost",
     }
     log.Printf("%v", cookie.String())
 
     http.SetCookie(w, &cookie)
+    w.WriteHeader(200)
+
   }
