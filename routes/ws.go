@@ -106,7 +106,6 @@ func (c *Client) read() {
         if err != nil {
             hub.removeClient <- c
             c.ws.Close()
-            log.Printf("disconnected")
             break
         }
         var (
@@ -128,10 +127,10 @@ func (c *Client) read() {
         if !ok {
             log.Fatal(errors.New("Message empty"))
         }
-        
+
         log.Printf("%v", msg)
         models.DB.Create(&msg)
-        hub.broadcast <- msg
+        hub.broadcast <- message
     }
 }
 
