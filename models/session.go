@@ -41,6 +41,13 @@ func (s Session) GetUser() (User, error) {
     return u, nil
 }
 
+func (s Session) FromKey(key string) (Session, error) {
+    if DB.Where("SessionID = ?", key).First(&s).RecordNotFound() {
+        return s, errors.New("Session not found.")
+    }
+    return s, nil
+}
+
 func GenerateRandomBytes(n int) ([]byte, error) {
     b := make([]byte, n)
 

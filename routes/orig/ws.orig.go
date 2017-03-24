@@ -3,11 +3,7 @@ package routes
 import (
   "net/http"
   "log"
-  "encoding/json"
-  "bytes"
-  "errors"
 
-  "github.com/el-komandante/gochat/models"
   "github.com/gorilla/websocket"
   "github.com/gorilla/mux"
 )
@@ -24,7 +20,6 @@ type Client struct {
     ws *websocket.Conn
     // Hub passes broadcast messages to this channel
     send chan []byte
-    userID uint
 }
 
 type Hub struct {
@@ -49,7 +44,6 @@ func (h *Hub) start() {
         case conn := <-hub.addClient:
             // add a new client
             hub.clients[conn] = true
-            log.Printf("%v", *conn)
         case conn := <-hub.removeClient:
             // remove a client
             if _, ok := hub.clients[conn]; ok {
@@ -57,6 +51,7 @@ func (h *Hub) start() {
                 close(conn.send)
             }
         case message := <-hub.broadcast:
+            log.Printf("%v", message)
 
             // broadcast a message to all clients
             for conn := range hub.clients {
@@ -109,36 +104,12 @@ func (c *Client) read() {
             log.Printf("disconnected")
             break
         }
-        var (
-            msg models.Message
-            to models.User
-            m map[string]interface{}
-            ok bool
-        )
-        decoder := json.NewDecoder(bytes.NewReader(message))
-        decoder.Decode(&m)
-        if models.DB.Where("username = ?", m["to"]).First(&to).RecordNotFound() {
-            err := errors.New("Recipient not found.")
-            log.Fatal(err)
-            break
-        }
-        msg.To = to.ID
-        msg.From = c.userID
-        msg.Text, ok = m["text"].(string)
-        if !ok {
-            log.Fatal(errors.New("Message empty"))
-        }
-        
-        log.Printf("%v", msg)
-        models.DB.Create(&msg)
-        hub.broadcast <- msg
+
+        hub.broadcast <- message
     }
 }
 
 func connectionHandler(w http.ResponseWriter, r *http.Request) {
-    var (
-        u models.User
-    )
     w.Header().Set("Content-Type", "application/json")
     w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     w.Header().Set("Access-Control-Allow-Origin", "localhost")
@@ -146,42 +117,26 @@ func connectionHandler(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Access-Control-Allow-Headers",
       "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
-    cookie, err := r.Cookie("session")
-    if err != nil {
-        log.Fatal(err)
-        return
-    }
-
     ws, err := upgrader.Upgrade(w, r, nil)
     if err != nil {
+        log.Println("err at 117")
         log.Fatal(err)
         return
     }
-
-    // s, err = s.FromKey(id)
-    // if err != nil {
-    //     log.Fatal(err)
-    //     return
-    // }
-    u, err = u.FromSessionID(cookie.Value)
-    if err != nil {
-        log.Fatal(err)
-        return
-    }
-
     client := &Client{
         ws: ws,
         send: make(chan []byte),
-        userID: u.ID,
     }
-
+    log.Printf("at 123")
     hub.addClient <- client
+    log.Printf("at 125")
     go client.write()
     go client.read()
+
 }
 
 func addWsRoutes(r *mux.Router) *mux.Router {
-    r.Handle("/ws", /*use(*/http.HandlerFunc(connectionHandler)/*, authenticate)*/)
-    go hub.start()
-    return r
+  r.Handle("/ws", /*use(*/http.HandlerFunc(connectionHandler)/*, authenticate)*/)
+  go hub.start()
+  return r
 }

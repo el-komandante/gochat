@@ -33,7 +33,7 @@ func CreatePassword(pw string) string {
     return string(hash)
 }
 
-func (u *User) GetSession() (Session, error) {
+func (u User) GetSession() (Session, error) {
     var (
         sess Session
     )
@@ -41,6 +41,19 @@ func (u *User) GetSession() (Session, error) {
         return sess, errors.New("No sessions found for this user.")
     }
     return sess, nil
+}
+
+func (u User) FromSessionID(id string) (User, error) {
+    var (
+        s Session
+    )
+    if DB.Where("session_id = ?", id).First(&s).RecordNotFound() {
+        return u, errors.New("Session not found.")
+    }
+    if DB.Where("ID = ?", s.UserID).First(&u).RecordNotFound() {
+        return u, errors.New("User not found.")
+    }
+    return u, nil
 }
 
 func (u User) NewSession() (Session, error) {
