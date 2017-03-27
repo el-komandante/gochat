@@ -9,7 +9,7 @@ import (
 
 type Message struct {
     gorm.Model
-    From uint   `json: from`
-    To uint
-    Text string
+    From uint   `json: "from"`
+    To uint     `json: "to"`
+    Text string `json: "text"`
 }

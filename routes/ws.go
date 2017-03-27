@@ -6,6 +6,7 @@ import (
   "encoding/json"
   "bytes"
   "errors"
+  "unicode/utf8"
 
   "github.com/el-komandante/gochat/models"
   "github.com/gorilla/websocket"
@@ -13,32 +14,32 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-  ReadBufferSize:  1024,
-  WriteBufferSize: 1024,
-  CheckOrigin: func(r *http.Request) bool {
-        return true
-      },
+    ReadBufferSize:  1024,
+    WriteBufferSize: 1024,
+    CheckOrigin: func(r *http.Request) bool {
+            return true
+        },
 }
 
 type Client struct {
     ws *websocket.Conn
     // Hub passes broadcast messages to this channel
-    send chan []byte
+    send chan models.Message
     userID uint
 }
 
 type Hub struct {
-  clients       map[*Client]bool
-  broadcast     chan []byte
-  addClient     chan *Client
-  removeClient  chan *Client
+    clients       map[uint]*Client
+    broadcast     chan models.Message
+    addClient     chan *Client
+    removeClient  chan *Client
 }
 
 var hub = Hub{
-  broadcast:    make(chan []byte),
-  addClient:    make(chan *Client),
-  removeClient: make(chan *Client),
-  clients:      make(map[*Client]bool),
+    broadcast:    make(chan models.Message),
+    addClient:    make(chan *Client),
+    removeClient: make(chan *Client),
+    clients:      make(map[uint]*Client),
 }
 
 func (h *Hub) start() {
@@ -46,27 +47,48 @@ func (h *Hub) start() {
         // one of these fires when a channel
         // receives data
         select {
-        case conn := <-hub.addClient:
+        case client := <-hub.addClient:
             // add a new client
-            hub.clients[conn] = true
-            log.Printf("%v", *conn)
-        case conn := <-hub.removeClient:
+            hub.clients[client.userID] = client
+        case client := <-hub.removeClient:
             // remove a client
-            if _, ok := hub.clients[conn]; ok {
-                delete(hub.clients, conn)
-                close(conn.send)
+            if _, ok := hub.clients[client.userID]; ok {
+                delete(hub.clients, client.userID)
+                close(client.send)
             }
         case message := <-hub.broadcast:
+            log.Printf("message at 60: %+v", message)
 
             // broadcast a message to all clients
-            for conn := range hub.clients {
-                select {
-                case conn.send <- message:
-                default:
-                    close(conn.send)
-                    delete(hub.clients, conn)
-                }
+            log.Printf("%v", hub.clients)
+            client, ok := hub.clients[message.To]
+            if !ok {
+                log.Fatal("Client not found")
             }
+            log.Printf("message at 64: %v", message)
+            select {
+                case client.send <- message:
+                    // log.Printf("to id: %v %t, from id: %v %t", client.userID, client.userID, message.From, message.From)
+                    log.Printf("%v %v", message.From, message.To)
+                    if message.From != message.To {
+                        receiver, ok := hub.clients[message.From]
+                        if !ok {
+                            log.Fatal("Client not found")
+                        }
+                        receiver.send <- message
+                    }
+                default:
+                    close(client.send)
+                    delete(hub.clients, client.userID)
+            }
+            // for conn := range hub.clients {
+            //     select {
+            //     case conn.send <- message:
+            //     default:
+            //         close(conn.send)
+            //         delete(hub.clients, conn)
+            //     }
+            // }
         }
     }
 }
@@ -84,11 +106,16 @@ func (c *Client) write() {
         case message, ok := <-c.send:
             if !ok {
                 c.ws.WriteMessage(websocket.CloseMessage, []byte{})
-                log.Printf("%v", message)
+                // log.Printf("%v", message)
                 return
             }
-            log.Printf("%v", message)
-            c.ws.WriteMessage(websocket.TextMessage, message)
+            var jsonBytes bytes.Buffer
+            err := json.NewEncoder(&jsonBytes).Encode(&message)
+            if err != nil {
+                panic(err)
+            }
+            // jsonBytes := make([]byte, len(jsonString))
+            c.ws.WriteMessage(websocket.TextMessage, jsonBytes.Bytes())
         }
     }
 }
@@ -102,7 +129,6 @@ func (c *Client) read() {
 
     for {
         _, message, err := c.ws.ReadMessage()
-        log.Printf("%v", message)
         if err != nil {
             hub.removeClient <- c
             c.ws.Close()
@@ -111,33 +137,32 @@ func (c *Client) read() {
         var (
             msg models.Message
             to models.User
-            m map[string]interface{}
-            ok bool
         )
-        decoder := json.NewDecoder(bytes.NewReader(message))
-        decoder.Decode(&m)
-        if models.DB.Where("username = ?", m["to"]).First(&to).RecordNotFound() {
+        err = json.NewDecoder(bytes.NewReader(message)).Decode(&msg)
+        if err != nil {
+            panic(err)
+        }
+        log.Printf("message at 137 = %+v", msg)
+        if utf8.RuneCountInString(msg.Text) < 1 {
+            log.Fatal(errors.New("Message empty"))
+        }
+        if models.DB.Where("ID = ?", msg.To).First(&to).RecordNotFound() {
             err := errors.New("Recipient not found.")
             log.Fatal(err)
             break
         }
         msg.To = to.ID
         msg.From = c.userID
-        msg.Text, ok = m["text"].(string)
-        if !ok {
-            log.Fatal(errors.New("Message empty"))
-        }
-
-        log.Printf("%v", msg)
+        log.Printf("message at 148: %+v", msg)
         models.DB.Create(&msg)
-        hub.broadcast <- message
+        log.Printf("message at 150: %+v", msg)
+        hub.broadcast <- msg
     }
 }
 
 func connectionHandler(w http.ResponseWriter, r *http.Request) {
-    var (
-        u models.User
-    )
+    var u models.User
+
     w.Header().Set("Content-Type", "application/json")
     w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     w.Header().Set("Access-Control-Allow-Origin", "localhost")
@@ -163,6 +188,7 @@ func connectionHandler(w http.ResponseWriter, r *http.Request) {
     //     return
     // }
     u, err = u.FromSessionID(cookie.Value)
+    log.Printf("user at 181: %+v", u)
     if err != nil {
         log.Fatal(err)
         return
@@ -170,7 +196,7 @@ func connectionHandler(w http.ResponseWriter, r *http.Request) {
 
     client := &Client{
         ws: ws,
-        send: make(chan []byte),
+        send: make(chan models.Message),
         userID: u.ID,
     }
 
@@ -180,7 +206,7 @@ func connectionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addWsRoutes(r *mux.Router) *mux.Router {
-    r.Handle("/ws", /*use(*/http.HandlerFunc(connectionHandler)/*, authenticate)*/)
+    r.Handle("/ws", use(http.HandlerFunc(connectionHandler), authenticate))
     go hub.start()
     return r
 }

@@ -83,11 +83,11 @@ func loginHandler(w http.ResponseWriter, req *http.Request) {
       Value: sess.SessionID,
       Path: "/",
       Expires: expires,
-      // Secure: false,
-      // HttpOnly: true,
+      Secure: false,
+      HttpOnly: true,
       Domain: "localhost",
     }
-    log.Printf("%v", cookie.String())
+    // log.Printf("%v", cookie.String())
 
     http.SetCookie(w, &cookie)
     w.WriteHeader(200)
